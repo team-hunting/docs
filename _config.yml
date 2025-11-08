@@ -1,6 +1,6 @@
 theme: jekyll-theme-cayman
-title: Team Hunting Docs
-description: Team Hunting Docs
+title: Team Hunting Knowledge Base
+description: Team Hunting Knowledge Base
 
 plugins:
   - jekyll-seo-tag
