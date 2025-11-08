@@ -1,18 +1,18 @@
 
-# Self Hosting with Proxmox, Docker, and a Tailscale Funnel
+# Self Host (Django+Postgres) with Docker, Portainer, and Tailscale Funnels
 
 Pre-implementation:
 Download proxmox iso and create bootable USB -> Install proxmox -> Configure proxmox with static IP
 
 
 **VM Setup**
-ISO link from https://releases.ubuntu.com/noble/
-https://releases.ubuntu.com/noble/ubuntu-24.04.3-desktop-amd64.iso
+ISO link from https://releases.ubuntu.com/noble/  
+https://releases.ubuntu.com/noble/ubuntu-24.04.3-desktop-amd64.iso  
 Download into proxmox from "local" -> ISO Images
 
 
 **Create VM** (Proxmox)
-Storage 256 GiB, Memory balloon from 4096->12000
+Storage 256 GiB, Memory balloon from 4096->12000  
 Select ubuntu ISO downloaded just previously
 
 
@@ -86,7 +86,7 @@ docker compose up -d
 Access portainer at: https://192.168.1.2:9443/  
 Need to use https, and make sure to use the correct IP of the host.
 
-You can use portainer to setup GitOps automated deployments that watch git repositories and point towards a docker compose file.
+You can use portainer to setup GitOps automated deployments that watch git repositories and point towards a docker compose file.  
 I'm using portainer to automatically deploy my main service (django app) as well as the tailscale sidecar. (In addition to other things)
 
 **Setup Postgres**
@@ -169,17 +169,17 @@ EOF
 
 # **Tailscale**
 
-Set up a tailscale account and sign into the admin panel
-Generate an auth key (or use oauth key instead)
+Set up a tailscale account and sign into the admin panel  
+Generate an auth key (or use oauth key instead)  
 This auth key will be used to set up autonomous tailscale sidecars
 
-Run this sidecar using docker compose directly on the host, or run it with something like portainer.
-Make sure to inject the environment variables for TS_HOST_NAME and TS_AUTH_KEY and APP_PORT
+Run this sidecar using docker compose directly on the host, or run it with something like portainer.  
+Make sure to inject the environment variables for TS_HOST_NAME and TS_AUTH_KEY and APP_PORT.  
 TS_HOST_NAME will become the subdomain of your tailscale link, i.e. https://my-host-name.tail8367fd.ts.net/
 
-==If running your app (that will be exposed) in a docker container as well, make sure to set network_mode: "host" on the service that will be exposed.==
+If running your app (that will be exposed) in a docker container as well, make sure to set network_mode: "host" on the service that will be exposed.
 
-Watch the logs for the tailscale container.
+Watch the logs for the tailscale container.  
 Sometimes it may fail to get an SSL cert on first run and you can re-deploy without changing anything to fix it. Give it a few minutes before attempting.
 
 ```
@@ -248,15 +248,18 @@ EOF
 ```
 
 Some resources say:
+```
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
 ```
+But:
+```
 If your host already has the `tun` kernel module loaded (which most modern systems do), Tailscale works perfectly fine without `sys_module`.
 ```
 
-
-**Django Specifics**
+---
+**Django Specifics:**  
 Make sure to set the correct values for 'allowed_hosts'.
 For example:
 1. running at https://my-host-name.tail8367fd.ts.net/
@@ -266,13 +269,12 @@ For example:
 ALLOWED_HOSTS = localhost,127.0.0.1,192.168.1.99,my-host-name.tail8367fd.ts.net
 ```
 
+---
+Tailscale can be run in a sidecar, or directly on the host.  
+---
 
 
-Tailscale can be run in a sidecar or separate container, or directly on the host.
-
-
-### Tailscale on Host - Optional
-
+### Tailscale on Host - Optional  
 
 **Install Tailscale on VM (not in container)**
 ```
@@ -296,7 +298,6 @@ sudo tailscale funnel -bg 8000
 sudo touch /etc/systemd/system/tailscale-django-funnel.service
 sudo nano /etc/systemd/system/tailscale-django-funnel.service
 
-
 # File content - change <port> for your port (8000)
 
 [Unit]  
@@ -316,11 +317,8 @@ WantedBy=multi-user.target
 
 
 sudo systemctl enable --now tailscale-django-funnel
-
 ```
-
-
-
+---
 Assorted notes:
 Create Django Superuser for Admin Panel 
 ```
