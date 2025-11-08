@@ -68,7 +68,6 @@ newgrp docker
 
 **Setup Git** (optional)
 ```
-
 # Persist credentials. Optional 
 
 git config --global credential.helper store
