@@ -84,6 +84,11 @@ cd portainer
 docker compose up -d
 ```
 
+Access portainer at: https://192.168.1.2:9443/  
+Need to use https, and make sure to use the correct IP of the host.
+
+You can use portainer to setup GitOps automated deployments that watch git repositories and point towards a docker compose file.
+I'm using portainer to automatically deploy my main service (django app) as well as the tailscale sidecar. (In addition to other things)
 
 **Setup Postgres**
 ```
