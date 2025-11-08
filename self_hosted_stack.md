@@ -1,18 +1,18 @@
 
 # Self Hosting with Proxmox, Docker, and a Tailscale Funnel
 
-Pre-implementation:
+Pre-implementation:  
 Download proxmox iso and create bootable USB -> Install proxmox -> Configure proxmox with static IP
 
 
-**VM Setup**
-ISO link from https://releases.ubuntu.com/noble/
-https://releases.ubuntu.com/noble/ubuntu-24.04.3-desktop-amd64.iso
+**VM Setup**  
+ISO link from https://releases.ubuntu.com/noble/  
+https://releases.ubuntu.com/noble/ubuntu-24.04.3-desktop-amd64.iso  
 Download into proxmox from "local" -> ISO Images
 
 
-**Create VM** (Proxmox)
-Storage 256 GiB, Memory balloon from 4096->12000
+**Create VM** (Proxmox)  
+Storage 256 GiB, Memory balloon from 4096->12000  
 Select ubuntu ISO downloaded just previously
 
 
@@ -28,7 +28,7 @@ hostname -I # Check that it's the IP you manually set
 ```
 
 
-**Enable SSH**
+**Enable SSH**  
 Settings -> System -> Secure Shell -> Toggle On (Unsure if this is needed when installing openssh-server)
 ```
 sudo apt update  
@@ -40,7 +40,7 @@ sudo systemctl start ssh
 ```
 
 
-**Install Docker** (Ubuntu)
+**Install Docker** (Ubuntu)  
 https://docs.docker.com/desktop/setup/install/linux/ubuntu/
 ```
 # Add Docker's official GPG key:
