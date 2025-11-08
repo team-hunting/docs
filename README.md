@@ -1,4 +1,16 @@
 
+
+
+##[Self Hosting with Proxmox and Tailscale](self_hosted_stack.md)
+
+---------
+----------
+
+---------
+
+---------
+
+
 Pre-implementation:
 Download proxmox iso and create bootable USB -> Install proxmox -> Configure proxmox with static IP
 
