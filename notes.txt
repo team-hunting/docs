@@ -1,3 +1,9 @@
 https://stackoverflow.com/questions/7653483/github-relative-link-in-markdown-file
 
 https://docs.github.com/en/pages/quickstart
+
+Themes:
+https://github.com/pages-themes/hacker
+https://github.com/pages-themes/cayman
+https://github.com/jekyll/minima  (has a few skins)
+https://pages-themes.github.io/modernist/

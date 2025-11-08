@@ -76,7 +76,7 @@ git config --global credential.helper store
 ```
 mkdir utils
 cd utils
-git clone https://github.com/team-hunting/portainer.git   (creds will persist now, use PAT)
+git clone https://github.com/team-hunting/portainer.git 
 
 cd portainer
 docker compose up -d
@@ -219,7 +219,7 @@ services:
       # Optional: Set a recognizable hostname for the node
       TS_HOSTNAME: ${TS_HOST_NAME}
     
-    # This command funnels traffic to 127.0.0.1:8000
+    # This command funnels traffic to 127.0.0.1:{APP_PORT}
     # Because both containers are in "host" mode, 127.0.0.1
     # is the host's loopback address, where 'web' is listening.
     command: |
