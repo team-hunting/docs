@@ -1,5 +1,5 @@
 
-# Self Host (Django+Postgres) with Docker, Portainer, and Tailscale Funnels
+# Self Host (Django, Postgres, S3) with Docker, Portainer, Tailscale Funnel, and Nginx
 
 Pre-implementation:  
 Download proxmox iso and create bootable USB -> Install proxmox -> Configure proxmox with static IP
@@ -177,7 +177,10 @@ Run this sidecar using docker compose directly on the host, or run it with somet
 Make sure to inject the environment variables for TS_HOST_NAME and TS_AUTH_KEY and APP_PORT.  
 TS_HOST_NAME will become the subdomain of your tailscale link, i.e. https://my-host-name.tail8367fd.ts.net/
 
-If running your app (that will be exposed) in a docker container as well, make sure to set network_mode: "host" on the service that will be exposed.
+If running your app (that will be exposed) in a docker container as well, make sure to set network_mode: "host" on the service that will be exposed.  
+Setting network_mode: "host" doesn't work correctly on Windows hosts.  
+To make this setup work on windows, you must include tailscale in the same docker compose file as the service you want to expose (and have them use the same network), or define an external docker network separately and set both services to use it.  
+(Or run tailscale on the windows host directly.)  
 
 Watch the logs for the tailscale container.  
 Sometimes it may fail to get an SSL cert on first run and you can re-deploy without changing anything to fix it. Give it a few minutes before attempting.
@@ -270,12 +273,12 @@ ALLOWED_HOSTS = localhost,127.0.0.1,192.168.1.99,my-host-name.tail8367fd.ts.net
 ```
 
 ---
-Tailscale can be run in a sidecar, or directly on the host.  
+# Tailscale can be run in a sidecar, or directly on the host.  
+
 ---
 
-
 ### Tailscale on Host - Optional  
-
+  
 **Install Tailscale on VM (not in container)**
 ```
 curl -fsSL https://tailscale.com/install.sh | sh
@@ -319,6 +322,111 @@ WantedBy=multi-user.target
 sudo systemctl enable --now tailscale-django-funnel
 ```
 ---
+
+# **S3**  
+
+Every app needs object storage these days. We'll host our own.  
+I'm using Minio as a fully featured, open source S3 server.  
+We'll run Minio through Portainer:  
+```
+services:
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${S3_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - s3_data:/data
+    command: server /data --console-address ":9001"
+
+  createbuckets:
+    image: minio/mc
+    container_name: initialize_minio
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${S3_ROOT_USER} ${S3_ROOT_PASSWORD};
+      /usr/bin/mc mb myminio/${S3_USER_UPLOADS_BUCKET};
+      /usr/bin/mc admin user add myminio ${S3_USER_UPLOADS_ACCESS_KEY} ${S3_USER_UPLOADS_SECRET_KEY};
+      /usr/bin/mc admin policy attach myminio readwrite --user ${S3_USER_UPLOADS_ACCESS_KEY};
+      exit 0;
+      "
+
+volumes:
+  s3_data:
+```
+
+```
+    # To troubleshoot minio, exec into the minio container and run:
+    # mc alias set myminio http://127.0.0.1:9000
+    # mc admin user -v -a myminio THEN enter ${S3_ROOT_USER} ${S3_ROOT_PASSWORD}
+```
+
+This stack includes an initialization sidecar to create a bucket and provision access for the main app.  
+
+Minio has a user interface on port 9001, and the S3 API is served on port 9000.  
+The way Minio and other S3 servers are designed to work is with pre-signed URLs.  
+Your app can provide the client (end user) a pre-signed URL pointing to S3 that includes a temporary access credential. When your users can hit S3 directly, your app doesn't have to do streaming IO on every request by proxying every file and potentially bottlenecking your app.  
+
+However, this means that we need to expose Minio as well as our app publicly.  
+Since we're already running one tailscale funnel on this host, we'll opt to set up a reverse proxy and expose that using the tailscale funnel.   
+
+Minio validates the host header in presigned URLs, so use nginx to rewrite the host to the internal IP for Minio. (see below)  
+
+## **Reverse Proxy**  
+
+Tailscale funnels can only serve 3 ports: 443, 8443, and 10000.  
+This means you can only run 3 funnels on one host, maximum.  
+Likely, you want your funnel listening on port 443 so that it can be reached easily using a web browser and HTTPS, as port 443 is the default port for HTTPS.  
+
+There are a couple of options to get around this and expose more services.  
+You can bake tailscale into every individual container you need to expose, and run every individual container as a tailscale node. If you need a different domain for each service, this could be an option.  
+The recommended solution is to run a reverse proxy such as Nginx, Traefik, or Caddy, and point your tailscale funnel to the reverse proxy instead of directly at your app.  
+
+With a configuration similar to the following, you can differentiate incoming requests and proxy them to the appropriate internal services:  
+```
+(nginx)
+
+server {
+
+    listen 80;
+
+    # ----------- S3 ROUTE -----------
+    location /s3/ {
+        proxy_pass http://127.0.0.1:9000/;
+        proxy_set_header Host 192.168.1.2:9000;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ----------- APP ROUTE -----------
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+```
+
+
+
+---
+
 Assorted notes:
 Create Django Superuser for Admin Panel 
 ```
